@@ -1,0 +1,692 @@
+/* File: src/App.css */
+
+:root {
+  /* ── 라이트 모드 (Default) ── */
+  --bg: #f8fafc;
+  --text: #1e293b;
+  --card-bg: #ffffff;
+  --border: #e2e8f0;
+  --productive: #10b981;
+  --unproductive: #f43f5e;
+  --neutral: #64748b;
+  --primary: #0f172a;
+  --primary-hover: #1e293b;
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --header-bg: #f1f5f9;
+}
+
+.dark-mode {
+  /* ── 다크 모드 ── */
+  --bg: #09090b;
+  --text: #f4f4f5;
+  --card-bg: #18181b;
+  --border: #27272a;
+  --primary: #f4f4f5;
+  --primary-hover: #e4e4e7;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --header-bg: #27272a30;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+#root {
+  width: 100%;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.app-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+/* Tabs Navigation */
+.tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--header-bg);
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--neutral);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.15s ease;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+}
+
+.tab-btn.active {
+  background: var(--card-bg);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1.2rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: all 0.2s;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--header-bg);
+}
+
+/* Stats Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--card-bg);
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.stat-card.productive {
+  border-top: 4px solid var(--productive);
+}
+
+.stat-card.unproductive {
+  border-top: 4px solid var(--unproductive);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--neutral);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+  color: var(--text);
+}
+
+/* 대시보드 2분할 레이아웃 그리드 */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.dashboard-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* 원형 도넛 그래픽 카드 */
+.doughnut-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.doughnut-svg-container {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 1rem 0;
+}
+
+.doughnut-center-text {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.doughnut-score {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+
+.doughnut-sub {
+  font-size: 0.75rem;
+  color: var(--neutral);
+  margin-top: 0.2rem;
+}
+
+/* GitHub 스타일 가로 적재식 3색 진행 바 */
+.stacked-progress-bar {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  background: var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.progress-segment {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.progress-segment.productive {
+  background: var(--productive);
+}
+
+.progress-segment.unproductive {
+  background: var(--unproductive);
+}
+
+.progress-segment.neutral {
+  background: var(--neutral);
+}
+
+/* 범례 Legend */
+.legend-container {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 1rem;
+  font-size: 0.75rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.legend-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+
+/* 가로 막대 그래프 랭킹 뷰 */
+.top-domain-row {
+  margin-bottom: 0.85rem;
+}
+
+.top-domain-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.top-domain-name {
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-domain-time {
+  color: var(--neutral);
+}
+
+.top-domain-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.top-domain-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.top-domain-bar-fill.productive {
+  background: var(--productive);
+}
+
+.top-domain-bar-fill.unproductive {
+  background: var(--unproductive);
+}
+
+.top-domain-bar-fill.neutral {
+  background: var(--neutral);
+}
+
+/* 24시간 타임라인 그리드 뷰 시각화 구조 */
+.timeline-grid {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 3px;
+  height: 36px;
+  margin-top: 1rem;
+  background: var(--header-bg);
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.timeline-hour-col {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+.timeline-bar-segment {
+  width: 100%;
+  border-radius: 2px;
+  transition: height 0.3s ease;
+}
+
+.timeline-bar-segment.productive {
+  background: var(--productive);
+}
+
+.timeline-bar-segment.unproductive {
+  background: var(--unproductive);
+}
+
+.timeline-bar-segment.neutral {
+  background: var(--neutral);
+}
+
+.timeline-hour-label {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  color: var(--neutral);
+  white-space: nowrap;
+}
+
+/* Controls */
+.control-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.select-filter {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+/* Button Premium styling */
+.btn-primary {
+  background: var(--primary);
+  color: var(--bg);
+  border: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-danger-icon {
+  background: transparent;
+  border: none;
+  color: var(--neutral);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-danger-icon:hover {
+  background: #f43f5e15;
+  color: #f43f5e;
+}
+
+/* Toggle Switch for Domain Aggregation */
+.toggle-btn-group {
+  display: flex;
+  background: var(--header-bg);
+  padding: 0.2rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.toggle-item {
+  background: transparent;
+  border: none;
+  color: var(--neutral);
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.1s ease;
+}
+
+.toggle-item.active {
+  background: var(--card-bg);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+/* Tables & Cards */
+.card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1.5rem;
+}
+
+.card h3 {
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  font-size: 1.1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  background: var(--header-bg);
+  color: var(--neutral);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+/* CSS기반 말줄임 및 반응형 텍스트 제한 구현 */
+.window-title-cell {
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.85rem;
+}
+
+/* Interactive Badge Dropdown Select */
+.badge-select {
+  border: none;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  text-align: center;
+}
+
+.badge-select.productive {
+  background-color: #10b98120;
+  color: #10b981;
+}
+
+.badge-select.unproductive {
+  background-color: #f43f5e20;
+  color: #f43f5e;
+}
+
+.badge-select.neutral {
+  background-color: #71717a20;
+  color: #71717a;
+}
+
+/* Form layout */
+.form-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  align-items: flex-end;
+}
+
+.input-control {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.6rem;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 뽀모도로 집중 상태 바 */
+.pomodoro-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #38bdf815;
+  border: 1px solid #38bdf840;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.pomodoro-time {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+/* Premium Floating Modal Backdrop */
+.modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.75rem;
+  width: 90%;
+  max-width: 440px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.modal-body {
+  font-size: 0.92rem;
+  color: var(--neutral);
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.modal-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.btn-block {
+  width: 100%;
+  padding: 0.65rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+
+.btn-block.danger-solid {
+  background: #f43f5e;
+  color: white;
+  border: none;
+}
+
+.btn-block.secondary {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* 🌟 ==========================================
+   🌟 [V4 최종개정]: 가로 캡슐 플로팅 배너 스타일 및 강제 투명도 덮어쓰기 규칙
+   🌟 ========================================== */
+
+/* 🌟 경고 창 가동 시 HTML, BODY, 루트 엘리먼트 배경 투명화 강제 집행 */
+.warning-active,
+.warning-active body,
+.warning-active #root,
+.warning-active html {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.fullscreen-warning-body {
+  background-color: transparent !important; /* 웹뷰 브라우저 자체 배경 투명화 */
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+/* 🌟 크롬 상단 약 85px 탭바 영역을 피하고 그 아래 뷰포트 영역 전체에만 테두리를 칩니다. */
+.tab-below-warning-overlay {
+  position: absolute !important;
+  top: 85px !important; /* 크롬의 상단 영역 85px 아래만 오버레이 배치 */
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  border: 10px solid rgba(244, 63, 94, 0.85) !important; /* 선명하고 고급진 로즈레드 테두리 */
+  background-color: rgba(244, 63, 94, 0.08) !important; /* 은은한 반투명 붉은색 틴트 */
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: none !important; /* 마우스 클릭이 오버레이를 관통하도록 설정 (Click-through) */
+}
+
+/* 🌟 화면 하단 캡슐 모양 알림 창 */
+.warning-capsule {
+  background: rgba(244, 63, 94, 0.95) !important; /* 반투명 적색 캡슐 */
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+  padding: 0.75rem 1.75rem !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  font-weight: 700 !important;
+  font-size: 1.05rem !important;
+  max-width: 580px !important;
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.warning-icon {
+  font-size: 1.4rem !important;
+  animation: pulse 1.5s infinite !important;
+  display: flex;
+  align-items: center;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(15px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
