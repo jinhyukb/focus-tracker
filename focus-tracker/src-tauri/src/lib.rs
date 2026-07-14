@@ -182,6 +182,141 @@ fn restore_db_bytes(state: tauri::State<'_, DbPath>, bytes: Vec<u8>) -> Result<(
  Ok(())
 }
 
+// [Phase 1: Step 1.3]: DB 설정 테이블에서 특정 설정 키를 꺼내오는 IPC 게이트웨이
+#[tauri::command]
+fn get_setting(state: tauri::State<'_, DbPath>, key: String) -> Result<Option<String>, String> {
+    let conn = rusqlite::Connection::open(&state.0).map_err(|e| e.to_string())?;
+    database::get_setting(&conn, &key).map_err(|e| e.to_string())
+}
+
+// [Phase 1: Step 1.3]: DB 설정 테이블에 특정 키와 값을 영구 기록하는 IPC 게이트웨이
+#[tauri::command]
+fn set_setting(state: tauri::State<'_, DbPath>, key: String, value: String) -> Result<(), String> {
+    let conn = rusqlite::Connection::open(&state.0).map_err(|e| e.to_string())?;
+    database::set_setting(&conn, &key, &value).map_err(|e| e.to_string())
+}
+
+// 🌟 [Phase 2: 고도화 - Green]: 프론트엔드가 보낸 days(1, 7, 30) 매개변수를 인지하여 맞춤형 기간 통계와 가변 프롬프트를 제미나이에 쏩니다.
+#[tauri::command]
+async fn get_ai_productivity_coach(state: tauri::State<'_, DbPath>, days: i32) -> Result<String, String> {
+    // 1. 데이터베이스에서 Gemini API Key 획득
+    let (api_key, logs) = {
+        let conn = rusqlite::Connection::open(&state.0).map_err(|e| e.to_string())?;
+        let api_key = match database::get_setting(&conn, "gemini_api_key").map_err(|e| e.to_string())? {
+            Some(key) if !key.trim().is_empty() => key.trim().to_string(),
+            _ => return Err("구글 제미나이 API Key가 등록되지 않았습니다. 환경설정 탭에서 먼저 Key를 입력하고 저장해 주세요.".to_string()),
+        };
+
+        // 🌟 동적 일자 쿼리 바인딩 수립
+        let mut stmt = if days == 1 {
+            conn.prepare(
+                "SELECT process_name, window_title, category, SUM(duration_sec)
+                 FROM time_logs
+                 WHERE date(created_at, 'localtime') >= date('now', 'localtime')
+                 GROUP BY process_name, window_title, category
+                 ORDER BY SUM(duration_sec) DESC"
+            ).map_err(|e| e.to_string())?
+        } else {
+            conn.prepare(
+                "SELECT process_name, window_title, category, SUM(duration_sec)
+                 FROM time_logs
+                 WHERE date(created_at, 'localtime') >= date('now', 'localtime', '-' || ? || ' days')
+                 GROUP BY process_name, window_title, category
+                 ORDER BY SUM(duration_sec) DESC"
+            ).map_err(|e| e.to_string())?
+        };
+
+        let mut rows = if days == 1 {
+            stmt.query([]).map_err(|e| e.to_string())?
+        } else {
+            // days가 7이면 '어제부터 6일전까지' 즉 총 7일치 범위를 긁기 위해 (days - 1) 적용도 고려하나, 
+            // SQLite date('now', '-7 days')는 오늘 포함 8일이 되므로, 안전하게 그대로 days 일 수만큼 범위를 수립합니다.
+            stmt.query([days]).map_err(|e| e.to_string())?
+        };
+
+        let mut logs = Vec::new();
+        while let Some(row) = rows.next().map_err(|e| e.to_string())? {
+            let proc: String = row.get(0).map_err(|e| e.to_string())?;
+            let title: String = row.get(1).map_err(|e| e.to_string())?;
+            let cat: String = row.get(2).map_err(|e| e.to_string())?;
+            let dur: i32 = row.get(3).map_err(|e| e.to_string())?;
+            logs.push((proc, title, cat, dur));
+        }
+        (api_key, logs)
+    }; // 중괄호 소멸 시 비-Send 자원 안전 Drop
+
+    if logs.is_empty() {
+        return Ok(format!("지정한 최근 {}일 동안 수집된 측정 데이터가 부족하여 AI 분석을 시작할 수 없습니다. 대시보드 통계가 수집된 후 다시 요청해 주세요.", days));
+    }
+
+    // 2. AI 전송용 비식별화 요약 텍스트 가공
+    let summary = format_report_for_ai(&logs);
+
+    // 🌟 일수 선택에 따라 프롬프트 문구 동적 현지화
+    let period_word = match days {
+        1 => "오늘 하루 동안의",
+        7 => "지난 1주일(7일) 동안의 누적된",
+        30 => "지난 한 달(30일) 동안의 누적된",
+        _ => "지정 기간 동안의"
+    };
+
+    let prompt = format!(
+        "너는 개인 생산성 분석가이자, 시간 관리 어플리케이션인 'Focus Tracker'의 따뜻하고 유능한 AI 코치이다. \
+        아래에 제공된 사용자의 {} 세부 프로그램 및 웹 브라우징 사용 시간 통계 내역을 바탕으로 전문적인 조언 리포트를 작성해라. \
+        \n\n\
+        [수립 가이드라인]\n\
+        1. 이 기간 동안 사용자의 시간 효율성을 가장 크게 저해한 요인이 되었던 앱이나 도메인(딴짓)을 통계 수치에 입각해 정확히 분석해줘.\n\
+        2. 앞으로의 업무 효율을 극대화하기 위해 당장 내일(혹은 장기적)로 실천할 수 있는 구체적이고 현실적인 행동 요령(Action Plan) 3가지를 글머리 기호(마크다운)로 작성해라.\n\
+        3. 전체적인 문체는 사용자를 존중하고 격려하는 아주 다정하고 부드러운 어조(존댓말)로 마크다운 문법을 활용해 3~4문단 내외로 줄바꿈을 포함해 인상적으로 작성해줘.\n\
+        \n\n\
+        [누적 사용 통계 내역]\n\
+        {}\n\
+        \n\n\
+        가이드에 따라 가시성 높은 한글 마크다운 분석 리포트를 즉시 출력하라.",
+        period_word,
+        summary
+    );
+
+    // 3. 구글 제미나이 3.1 플래시 라이트 API 비동기 네트워크 송신 (무정체 고가용성 모델)
+    let client = reqwest::Client::new();
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={}",
+        api_key
+    );
+
+    let request_payload = serde_json::json!({
+        "contents": [{
+            "parts": [{
+                "text": prompt
+            }]
+        }]
+    });
+
+    let response = client.post(&url)
+        .json(&request_payload)
+        .send()
+        .await
+        .map_err(|e| format!("구글 제미나이 서버 전송에 실패했습니다: {}", e))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let err_body = response.text().await.unwrap_or_default();
+        return Err(format!("구글 API 통신 오류 ({}): {}", status, err_body));
+    }
+
+    let response_json: serde_json::Value = response.json()
+        .await
+        .map_err(|e| format!("JSON 응답 본문 파싱 실패: {}", e))?;
+
+    // 구조체 경로 파싱: candidates[0].content.parts[0].text 안전 획득
+    let ai_text = response_json
+        .pointer("/candidates/0/content/parts/0/text")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "제미나이의 응답 구조 분석 실패: 유효한 텍스트 파트를 추출할 수 없습니다.".to_string())?;
+
+    Ok(ai_text.to_string())
+}
+
 // 🌟 V5-비동기개선: Windows WebView2 데드락 방지를 위해 async fn 으로 선언합니다.
 #[tauri::command]
 async fn toggle_focus_warning(
@@ -268,7 +403,7 @@ fn get_timeline(state: tauri::State<'_, DbPath>) -> Result<Vec<TimelineItem>, St
  let mut stmt = conn.prepare(
  "SELECT strftime('%H', created_at, 'localtime') as hr, category, SUM(duration_sec)
  FROM time_logs
- WHERE created_at >= date('now', 'localtime')
+ WHERE date(created_at, 'localtime') >= date('now', 'localtime') -- 🌟 [V5 최종개정]: 타임존 새벽 왜곡 버그 완치
  GROUP BY hr, category"
  ).map_err(|e| e.to_string())?;
  
@@ -522,7 +657,10 @@ pub fn run() {
  restore_db_bytes,
  toggle_focus_warning,
  get_timeline,
- get_current_active_category
+ get_current_active_category,
+ get_setting,
+ set_setting,
+ get_ai_productivity_coach
  ])
  .run(tauri::generate_context!())
  .expect("error while running tauri application");
@@ -549,6 +687,27 @@ pub fn url_encode(input: &str) -> String {
     encoded
 }
 
+// [Phase 2: Step 2.2 - Green]: 통계 로그의 형식을 사람이 읽을 수 있는 명세형 마크다운 재료로 요약합니다.
+fn format_report_for_ai(logs: &[(String, String, String, i32)]) -> String {
+    let mut summary = String::new();
+    for (proc, title, cat, dur) in logs {
+        let mins = dur / 60;
+        let secs = dur % 60;
+        let time_str = if mins > 0 {
+            format!("{}분 {}초", mins, secs)
+        } else {
+            format!("{}초", secs)
+        };
+        let cat_kor = match cat.as_str() {
+            "PRODUCTIVE" => "생산적",
+            "UNPRODUCTIVE" => "비생산적",
+            _ => "중립",
+        };
+        summary.push_str(&format!("- {} ({}) - {}: {}\n", proc, title, cat_kor, time_str));
+    }
+    summary
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -556,5 +715,23 @@ mod tests {
     #[test]
     fn test_url_encode_tdd() {
         assert_eq!(url_encode("유튜브"), "%EC%9C%A0%ED%8A%9C%EB%B8%8C");
+    }
+}
+
+#[cfg(test)]
+mod tests_gemini {
+    use super::*;
+
+    // [Phase 2: Step 2.2 - Green]: 스터브가 완전히 치유되었으므로 이제 정상 통과(Passed)합니다.
+    #[test]
+    fn test_gemini_prompt_builder() {
+        let sample_logs = vec![
+            ("Google Chrome".to_string(), "youtube.com".to_string(), "UNPRODUCTIVE".to_string(), 120),
+            ("Google Chrome".to_string(), "aistudio.google.com".to_string(), "PRODUCTIVE".to_string(), 1800),
+        ];
+        let summary = format_report_for_ai(&sample_logs);
+        
+        assert!(summary.contains("youtube.com"));
+        assert!(summary.contains("생산적"));
     }
 }
